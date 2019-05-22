@@ -1,8 +1,13 @@
 from flask import Flask, render_template, request
 from flask_sqlalchemy import SQLAlchemy
+from helper import send_email
+from sqlalchemy.sql import func
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgresql123@localhost/height_collector'
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgresql123@localhost/height_collector'
+app.config['SQLALCHEMY_DATABASE_URI'] = """postgres://gbhqpfncjudmea:
+9b9c6a51048fea29506932818111d9ad1132cb363e4f8416d639b4017ec36aac@
+ec2-54-221-212-126.compute-1.amazonaws.com:5432/d1od71r3n81v0o?sslmode=require"""
 db = SQLAlchemy(app)
 
 
@@ -31,6 +36,10 @@ def success():
             data = Data(email, height)
             db.session.add(data)
             db.session.commit()
+            avg_height = db.session.query(func.avg(Data.height)).scalar()
+            avg_height = round(avg_height, 2)
+            count = db.session.query(Data.height).count()
+            send_email(email, height, avg_height, count)
             return render_template("success.html")
         else:
             return render_template("index.html",
